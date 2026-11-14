@@ -1,0 +1,560 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center" style="min-height: 52px;">
+        <div>
+            <h4 class="mb-0"><i class="bi bi-gear text-primary"></i> Settings</h4>
+            <div class="text-muted small mt-1">Configure your qBittorrent, *Arr connections, and automated schedules.</div>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-12">
+        <form id="settings-form">
+            
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-secondary h-100">
+                        <div class="card-header bg-dark border-secondary py-2 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-hdd-network text-primary"></i> qBittorrent</h5>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="qbit-enabled">
+                                    <label class="form-check-label text-light small mb-0 ms-1" for="qbit-enabled">Enable</label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-success" id="test-btn" onclick="testConnection()">Test</button>
+                            </div>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row mb-2">
+                                <div class="col-md-7">
+                                    <label class="form-label small mb-1">URL</label>
+                                    <input type="text" class="form-control form-control-sm" id="qbit-url">
+                                    <div class="form-text text-muted small" style="font-size: 0.75rem;">Example: http://192.168.1.100:8080</div>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small mb-1">Auth Method</label>
+                                    <select class="form-select form-select-sm" id="qbit-auth-method" onchange="toggleQbitAuth()">
+                                        <option value="password">User / Pass</option>
+                                        <option value="apikey">API Key</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div id="qbit-pass-fields" class="row mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Username</label>
+                                    <input type="text" class="form-control form-control-sm" id="qbit-user">
+                                    <div class="form-text text-muted small" style="font-size: 0.75rem;">Example: admin</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Password</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="password" class="form-control" id="qbit-pass">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('qbit-pass')"><i class="bi bi-eye"></i></button>
+                                    </div>
+                                    <div class="form-text text-muted small" style="font-size: 0.75rem;">WebUI password</div>
+                                </div>
+                            </div>
+                            
+                            <div id="qbit-key-fields" class="mb-2" style="display: none;">
+                                <label class="form-label small mb-1">API Key</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="password" class="form-control" id="qbit-apikey">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('qbit-apikey')"><i class="bi bi-eye"></i></button>
+                                </div>
+                                <div class="form-text text-muted small" style="font-size: 0.75rem;">Example: qbt_abc123...</div>
+                            </div>
+                            
+                            <div id="test-result" class="mt-2 fw-bold small" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-secondary h-100">
+                        <div class="card-header bg-dark border-secondary py-2 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-clock text-success"></i> Automation Schedules</h5>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="schedules-enabled">
+                                <label class="form-check-label text-light small mb-0 ms-1" for="schedules-enabled">Enable</label>
+                            </div>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Stale Metadata Cleanup</label>
+                                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                                        <input type="number" step="any" class="form-control" id="sched-bt-val" value="24">
+                                        <select class="form-select" id="sched-bt-unit"><option value="hours">Hrs</option><option value="minutes">Mins</option></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Stalled/Failing Torrent Handler</label>
+                                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                                        <input type="number" step="any" class="form-control" id="sched-stall-val" value="1">
+                                        <select class="form-select" id="sched-stall-unit"><option value="hours">Hrs</option><option value="minutes">Mins</option></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Unmanaged Torrents</label>
+                                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                                        <input type="number" step="any" class="form-control" id="sched-unmanaged-val" value="24">
+                                        <select class="form-select" id="sched-unmanaged-unit"><option value="hours">Hrs</option><option value="minutes">Mins</option></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Dangerous File Blocker</label>
+                                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                                        <input type="number" step="any" class="form-control" id="sched-exts-val" value="0.5">
+                                        <select class="form-select" id="sched-exts-unit"><option value="hours">Hrs</option><option value="minutes">Mins</option></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Missing Media Sync</label>
+                                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                                        <input type="number" step="any" class="form-control" id="sched-missing-val" value="6">
+                                        <select class="form-select" id="sched-missing-unit"><option value="hours">Hrs</option><option value="minutes">Mins</option></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Quarantine Cleanup</label>
+                                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                                        <input type="number" step="any" class="form-control" id="sched-quarantine-val" value="24">
+                                        <select class="form-select" id="sched-quarantine-unit"><option value="hours">Hrs</option><option value="minutes">Mins</option></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Unmonitor Items</label>
+                                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                                        <input type="number" step="any" class="form-control" id="sched-unmonitor-val" value="24">
+                                        <select class="form-select" id="sched-unmonitor-unit"><option value="hours">Hrs</option><option value="minutes">Mins</option></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Database Health</label>
+                                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                                        <input type="number" step="any" class="form-control" id="sched-arr-health-val" value="6">
+                                        <select class="form-select" id="sched-arr-health-unit"><option value="hours">Hrs</option><option value="minutes">Mins</option></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Notifications</label>
+                                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                                        <input type="number" step="any" class="form-control" id="sched-notify-val" value="0.25">
+                                        <select class="form-select" id="sched-notify-unit"><option value="hours">Hrs</option><option value="minutes">Mins</option></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Metrics Snapshot</label>
+                                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                                        <input type="number" step="any" class="form-control" id="sched-metrics-val" value="1">
+                                        <select class="form-select" id="sched-metrics-unit"><option value="hours">Hrs</option><option value="minutes">Mins</option></select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card shadow-sm border-secondary">
+                        <div class="card-header bg-dark border-secondary py-2 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-stopwatch text-danger"></i> Task Watchdog &amp; Timeouts</h5>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="form-text text-muted mb-3" style="font-size: 0.8rem;">
+                                Sets a maximum runtime for background tasks (in <strong>minutes</strong>). If a script hangs or takes too long, it writes a 'Timeout' warning to the History page. This is for monitoring the health of the scripts, not the age of your torrents. <strong>0 = disabled.</strong>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-3"><label class="form-label small mb-1">Stale Metadata Cleanup</label><div class="input-group input-group-sm"><input type="number" class="form-control" id="to-bt_backup" min="0" step="0.5" value="5"><span class="input-group-text">min</span></div></div>
+                                <div class="col-md-3"><label class="form-label small mb-1">Stalled/Failing Handler</label><div class="input-group input-group-sm"><input type="number" class="form-control" id="to-stalled" min="0" step="0.5" value="10"><span class="input-group-text">min</span></div></div>
+                                <div class="col-md-3"><label class="form-label small mb-1">Unmanaged Torrents</label><div class="input-group input-group-sm"><input type="number" class="form-control" id="to-unmanaged" min="0" step="0.5" value="15"><span class="input-group-text">min</span></div></div>
+                                <div class="col-md-3"><label class="form-label small mb-1">Dangerous File Blocker</label><div class="input-group input-group-sm"><input type="number" class="form-control" id="to-extensions" min="0" step="0.5" value="10"><span class="input-group-text">min</span></div></div>
+                                <div class="col-md-3"><label class="form-label small mb-1">Missing Media Sync</label><div class="input-group input-group-sm"><input type="number" class="form-control" id="to-missing" min="0" step="0.5" value="0"><span class="input-group-text">min</span></div></div>
+                                <div class="col-md-3"><label class="form-label small mb-1">Quarantine Cleanup</label><div class="input-group input-group-sm"><input type="number" class="form-control" id="to-quarantine" min="0" step="0.5" value="10"><span class="input-group-text">min</span></div></div>
+                                <div class="col-md-3"><label class="form-label small mb-1">Unmonitor Items</label><div class="input-group input-group-sm"><input type="number" class="form-control" id="to-unmonitor" min="0" step="0.5" value="0"><span class="input-group-text">min</span></div></div>
+                                <div class="col-md-3"><label class="form-label small mb-1">Database Health</label><div class="input-group input-group-sm"><input type="number" class="form-control" id="to-arr_health" min="0" step="0.5" value="5"><span class="input-group-text">min</span></div></div>
+                                <div class="col-md-3"><label class="form-label small mb-1">Notifications</label><div class="input-group input-group-sm"><input type="number" class="form-control" id="to-notify" min="0" step="0.5" value="2"><span class="input-group-text">min</span></div></div>
+                                <div class="col-md-3"><label class="form-label small mb-1">Metrics Snapshot</label><div class="input-group input-group-sm"><input type="number" class="form-control" id="to-metrics" min="0" step="0.5" value="1"><span class="input-group-text">min</span></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card shadow-sm border-secondary">
+                        <div class="card-header bg-dark border-secondary py-2 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-envelope text-info"></i> Notifications</h5>
+                            <div class="d-flex align-items-center gap-3">
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="testNotify()">Test Email</button>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="notif-enabled">
+                                    <label class="form-check-label text-light small mb-0 ms-1" for="notif-enabled">Enable</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="form-text text-muted mb-3" style="font-size: 0.8rem;">
+                                Sends one email per cycle summarizing new warnings and resolutions. Enabling notifications silences warnings that were already active.
+                            </div>
+
+                            <h6 class="text-light mb-2"><i class="bi bi-envelope-at text-info"></i> Email (SMTP)</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6"><label class="form-label small mb-1">SMTP Host</label><input type="text" class="form-control form-control-sm" id="notif-smtp-host"></div>
+                                <div class="col-md-2"><label class="form-label small mb-1">Port</label><input type="number" class="form-control form-control-sm" id="notif-smtp-port" value="25"></div>
+                                <div class="col-md-4"><label class="form-label small mb-1">TLS Mode</label><select class="form-select form-select-sm" id="notif-tls-mode"><option value="none">None</option><option value="starttls">STARTTLS (587)</option><option value="ssl">SSL (465)</option></select></div>
+                                <div class="col-md-6"><label class="form-label small mb-1">Username</label><input type="text" class="form-control form-control-sm" id="notif-username"></div>
+                                <div class="col-md-6"><label class="form-label small mb-1">Password</label><div class="input-group input-group-sm"><input type="password" class="form-control" id="notif-password"><button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('notif-password')"><i class="bi bi-eye"></i></button></div></div>
+                                <div class="col-md-6"><label class="form-label small mb-1">From Address</label><input type="email" class="form-control form-control-sm" id="notif-from-addr"></div>
+                                <div class="col-md-6"><label class="form-label small mb-1">To Addresses</label><input type="text" class="form-control form-control-sm" id="notif-to-addrs"></div>
+                            </div>
+
+                            <hr class="border-secondary">
+                            
+                            <h6 class="text-light mb-2 mt-3"><i class="bi bi-funnel text-warning"></i> Muted Warning Sources</h6>
+                            <div class="form-text text-muted mb-2" style="font-size: 0.75rem;">Uncheck a source to stop receiving emails about it.</div>
+                            <div id="muted-sources-container" class="d-grid mb-4" style="grid-template-columns: repeat(2, 1fr); gap: 0.35rem;"></div>
+
+                            <hr class="border-secondary">
+
+                            <h6 class="text-light mb-2 mt-3"><i class="bi bi-journal-text text-success"></i> Periodic Digest</h6>
+                            <div class="form-text text-muted mb-3" style="font-size: 0.75rem;">Sends a summary of activity over the selected period. No backlog dump occurs if disabled for a while.</div>
+                            
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-3">
+                                    <div class="form-check form-switch mt-4">
+                                        <input class="form-check-input" type="checkbox" id="digest-enabled">
+                                        <label class="form-check-label text-light" for="digest-enabled">Enable Digest</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1">Frequency</label>
+                                    <select class="form-select form-select-sm" id="digest-freq" onchange="toggleDigestFreq()">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Hour (0-23)</label>
+                                    <input type="number" class="form-control form-control-sm" id="digest-hour" min="0" max="23" value="8">
+                                </div>
+                                <div class="col-md-2" id="digest-dow-container">
+                                    <label class="form-label small mb-1">Day of Week</label>
+                                    <select class="form-select form-select-sm" id="digest-dow">
+                                        <option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option>
+                                        <option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-none" id="digest-dom-container">
+                                    <label class="form-label small mb-1">Day of Month</label>
+                                    <input type="number" class="form-control form-control-sm" id="digest-dom" min="1" max="28" value="1">
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-12"><div class="form-text text-muted fw-bold">Sections to Include:</div></div>
+                                <div class="col-md-3"><div class="form-check"><input class="form-check-input digest-sec" type="checkbox" id="sec-task" value="task_activity"><label class="form-check-label text-light" for="sec-task">Task Activity</label></div></div>
+                                <div class="col-md-3"><div class="form-check"><input class="form-check-input digest-sec" type="checkbox" id="sec-health" value="health_changes"><label class="form-check-label text-light" for="sec-health">Health Changes</label></div></div>
+                                <div class="col-md-3"><div class="form-check"><input class="form-check-input digest-sec" type="checkbox" id="sec-snap" value="current_snapshot"><label class="form-check-label text-light" for="sec-snap">Current Snapshot</label></div></div>
+                                <div class="col-md-3"><div class="form-check"><input class="form-check-input digest-sec" type="checkbox" id="sec-events" value="notable_events"><label class="form-check-label text-light" for="sec-events">Notable Events</label></div></div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card shadow-sm border-secondary">
+                        <div class="card-header bg-dark border-secondary py-2">
+                            <h5 class="mb-0"><i class="bi bi-gear-wide-connected text-warning"></i> Miscellaneous &amp; Search Settings</h5>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row g-4">
+                                <!-- Left column: General / Unmonitor / Storage & Logging -->
+                                <div class="col-lg-7">
+                                    <h6 class="text-light mb-3"><i class="bi bi-gear text-warning"></i> General</h6>
+
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="global-dry-run">
+                                            <label class="form-check-label fw-bold text-warning" for="global-dry-run">Global Dry Run</label>
+                                        </div>
+                                        <div class="form-text text-muted" style="font-size: 0.75rem;">When enabled, all background tasks (and manual clicks) will simulate their actions without deleting files, moving torrents, or modifying your *arrs.</div>
+                                    </div>
+
+                                    <hr class="border-secondary">
+
+                                    <h6 class="text-light mb-3 mt-3"><i class="bi bi-eye-slash text-warning"></i> Unmonitor Behavior</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label small mb-1">Unmonitor Mode</label>
+                                        <select class="form-select form-select-sm" id="unmonitor-mode">
+                                            <option value="items">Episodes/Albums/Books/Movies</option>
+                                            <option value="items_seasons">Episodes/Albums/Books/Movies + Complete Seasons</option>
+                                            <option value="items_seasons_parents">Episodes/Albums/Books/Movies + Complete Seasons + Ended Series/Deceased Artists</option>
+                                        </select>
+                                        <div class="form-text text-muted" style="font-size: 0.75rem;">
+                                            <strong>Episodes/Albums/Books/Movies:</strong> Unmonitor individual episodes/albums/books/movies with files.<br>
+                                            <strong>+ Complete Seasons:</strong> Also unmonitor entire seasons (Sonarr) or albums (Lidarr) when all their items are present.<br>
+                                            <strong>+ Ended Series/Deceased Artists:</strong> Also unmonitor whole series when ended and complete, or whole artists/authors when deceased and complete.<br>
+                                            <em>Radarr/Whisparr always use Items Only (no parent concept).</em>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="unmonitor-ignore-specials">
+                                            <label class="form-check-label text-light" for="unmonitor-ignore-specials">Ignore Specials (Season 0)</label>
+                                        </div>
+                                        <div class="form-text text-muted" style="font-size: 0.75rem;">When calculating series completeness, skip Season 0 (specials).</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="unmonitor-force-refresh">
+                                            <label class="form-check-label text-light" for="unmonitor-force-refresh">Force *Arr Refresh Before Unmonitor</label>
+                                        </div>
+                                        <div class="form-text text-muted" style="font-size: 0.75rem;">Before evaluating, trigger a full library refresh on each enabled *arr and wait for it to complete. Prevents unmonitoring items whose files were moved externally (e.g., failed transcodes, manual cleanup) but the *arr hasn't noticed yet. Refreshes run sequentially (not parallel) to avoid disk I/O contention. Adds 2–5 minutes on typical setups with fast *arrs only, but 15–25 minutes on large libraries where Sonarr and Lidarr walk the filesystem. If a refresh fails or times out, that *arr is skipped this cycle — no unmonitoring happens on possibly-stale data.</div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label small mb-1">Refresh Timeout (seconds)</label>
+                                        <input type="number" class="form-control form-control-sm" id="unmonitor-refresh-timeout" value="600" style="max-width: 200px;">
+                                        <div class="form-text text-muted" style="font-size: 0.75rem;">How long to wait for each *arr refresh before skipping that *arr this cycle. 600 works for Radarr/Whisparr/Chaptarr; Sonarr and Lidarr filesystem walks often need 1800.</div>
+                                    </div>
+
+                                    <hr class="border-secondary">
+
+                                    <h6 class="text-light mb-3 mt-3"><i class="bi bi-database text-info"></i> Storage &amp; Logging</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label small mb-1">History Retention</label>
+                                            <input type="number" class="form-control form-control-sm" id="history-retention" value="100">
+                                            <div class="form-text text-muted small">Max task log entries to keep in DB.</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small mb-1">Log Level</label>
+                                            <select class="form-select form-select-sm" id="log-level">
+                                                <option value="INFO">Info (Normal)</option>
+                                                <option value="DEBUG">Debug (Verbose)</option>
+                                                <option value="WARNING">Warning</option>
+                                                <option value="ERROR">Error</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small mb-1">Quarantine Retention (days)</label>
+                                            <input type="number" class="form-control form-control-sm" id="q-retention-val" value="7">
+                                            <div class="form-text text-muted small">Files older than this are purged. <strong>0 = disabled.</strong></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small mb-1">Max Quarantine Files Displayed</label>
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-text">
+                                                    <input class="form-check-input mt-0" type="checkbox" id="q-limit-enabled" title="Enable/Disable Limit">
+                                                </div>
+                                                <input type="number" class="form-control" id="q-limit-val" value="100">
+                                            </div>
+                                            <div class="form-text text-muted small">UI limit only (does not delete files).</div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="log-to-file">
+                                                <label class="form-check-label text-light" for="log-to-file">Save Logs to File</label>
+                                            </div>
+                                            <div class="form-text text-muted" style="font-size: 0.75rem;">Writes logs to <code>/config/qbit-doctarr.log</code> (rotates at 5MB, keeps 2 backups).</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right column: Security & Missing Media Search -->
+                                <div class="col-lg-5">
+                                    <h6 class="text-light mb-3"><i class="bi bi-shield-lock text-info"></i> Security (Basic Auth)</h6>
+
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="sec-auth-enabled">
+                                            <label class="form-check-label fw-bold text-warning" for="sec-auth-enabled">Enable Basic Auth</label>
+                                        </div>
+                                        <div class="form-text text-muted" style="font-size: 0.75rem;">Protects the UI with a simple HTTP username and password. Disabled by default.</div>
+                                    </div>
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-6">
+                                            <label class="form-label small mb-1">Username</label>
+                                            <input type="text" class="form-control form-control-sm" id="sec-auth-user" value="admin">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small mb-1">Password</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="password" class="form-control" id="sec-auth-pass">
+                                                <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('sec-auth-pass')"><i class="bi bi-eye"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr class="border-secondary">
+
+                                    <h6 class="text-light mb-3 mt-3"><i class="bi bi-search text-info"></i> Missing Media Search</h6>
+
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="thresh-missing-polite">
+                                            <label class="form-check-label fw-bold" for="thresh-missing-polite">Respect Indexer Constraints (Polite Mode)</label>
+                                        </div>
+                                        <div class="form-text text-muted" style="font-size: 0.75rem;">If disabled, triggers a full 'Search All Missing' command in the *arr. Enable this to use the batch/cooldown system to avoid indexer bans.</div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small mb-1">Batch Size</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" id="thresh-missing-batch" value="3">
+                                            <select class="form-select" id="thresh-missing-batch-mode" style="max-width: 130px;">
+                                                <option value="per_arr">Per *Arr</option>
+                                                <option value="total">Total</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-text text-muted" style="font-size: 0.75rem;">
+                                            <strong>Per *Arr:</strong> up to N searches for each enabled *arr per run.<br>
+                                            <strong>Total:</strong> up to N searches across all *arrs per run.<br>
+                                            Individual items are still throttled by cooldown.
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label small mb-1">Cooldown (Hours)</label>
+                                            <input type="number" class="form-control form-control-sm" id="thresh-missing-cooldown" value="24">
+                                            <div class="form-text text-muted small">Wait before retrying.</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small mb-1">Max Retries</label>
+                                            <input type="number" class="form-control form-control-sm" id="thresh-missing-retries" value="5">
+                                            <div class="form-text text-muted small">Before marking as failed.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card shadow-sm border-secondary">
+                        <div class="card-header bg-dark border-secondary py-2">
+                            <h5 class="mb-0"><i class="bi bi-sliders text-danger"></i> Stall/Failure Thresholds &amp; File Filters</h5>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row g-3 align-items-start mb-3">
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Metadata Timeout</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" step="any" class="form-control" id="thresh-meta-val" value="2">
+                                        <select class="form-select" id="thresh-meta-unit">
+                                            <option value="hours">Hrs</option>
+                                            <option value="minutes">Mins</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-text text-muted" style="font-size: 0.75rem;">Wait for metadata.</div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Fail Torrents After</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" step="any" class="form-control" id="thresh-stalled-val" value="48">
+                                        <select class="form-select" id="thresh-stalled-unit">
+                                            <option value="hours">Hrs</option>
+                                            <option value="minutes">Mins</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-text text-muted" style="font-size: 0.75rem;">Timeout before fail.</div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Orphaned Torrent Age</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" step="any" class="form-control" id="thresh-unmanaged-val" value="168">
+                                        <select class="form-select" id="thresh-unmanaged-unit">
+                                            <option value="hours">Hrs</option>
+                                            <option value="minutes">Mins</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-text text-muted" style="font-size: 0.75rem;">Delete after.</div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Slow Speed</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" step="any" class="form-control" id="thresh-speed-val" value="10">
+                                        <select class="form-select" id="thresh-speed-unit">
+                                            <option value="KiB">KiB/s</option>
+                                            <option value="MiB">MiB/s</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-text text-muted" style="font-size: 0.75rem;">Threshold for "slow".</div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Max Progress to Act On</label>
+                                    <input type="number" step="any" class="form-control form-control-sm" id="thresh-max-pct" value="100">
+                                    <div class="form-text text-muted" style="font-size: 0.75rem;">Ignore higher progress.</div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Pause Stalled Seeds</label>
+                                    <select class="form-select form-select-sm" id="thresh-target-seeds-select">
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                    </select>
+                                    <div class="form-text text-muted" style="font-size: 0.75rem;">Pause 100% seeds.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Blocked Extensions (Comma Separated)</label>
+                                    <textarea class="form-control form-control-sm" id="thresh-blocked-exts" rows="2">exe,scr,bat,cmd,vbs,js,jse,wsf,wsh,msi,msp,com,pif,hta,cpl,msc,jar,py,ps1,reg,zipx,arj,iso,img,vhd,vhdx</textarea>
+                                    <div class="form-text text-muted" style="font-size: 0.75rem;">
+                                        Torrents containing these files will be blocked.<br>
+                                        <strong>Default:</strong> <code>exe,scr,bat,cmd,vbs,js,jse,wsf,wsh,msi,msp,com,pif,hta,cpl,msc,jar,py,ps1,reg,zipx,arj,iso,img,vhd,vhdx</code>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Approved Extensions (Comma Separated)</label>
+                                    <textarea class="form-control form-control-sm" id="thresh-approved-exts" rows="2">mkv,mp4,avi,mov,srt,sub,ass,mp3,flac,m4a,epub,pdf,azw3</textarea>
+                                    <div class="form-text text-muted" style="font-size: 0.75rem;">
+                                        If a torrent has both blocked and approved files, the blocked files are skipped and the approved files are downloaded.<br>
+                                        <strong>Default:</strong> <code>mkv,mp4,avi,mov,srt,sub,ass,mp3,flac,m4a,epub,pdf,azw3</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card shadow-sm border-secondary">
+                        <div class="card-header bg-dark border-secondary py-2 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-film text-info"></i> *Arr Instances</h5>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="addArrRow()">+ Add Instance</button>
+                        </div>
+                        <div class="card-body py-3" id="arr-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 mb-5">
+                <button type="submit" class="btn btn-primary btn-lg">Save Settings</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Data Island for Settings JS -->
+<script type="application/json" id="settings-config-data">{{ config | tojson | safe }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+{% endblock %}

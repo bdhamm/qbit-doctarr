@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>qbit-doctarr</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        html { scrollbar-gutter: stable; }
+        body { background-color: #121212; margin: 0; }
+        .main-container { padding-top: 1.5rem; padding-bottom: 1.5rem; box-sizing: border-box; }
+
+        .body-fixed { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        .body-fixed .main-container { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+        .body-fixed .page-header { flex-shrink: 0; }
+        .body-fixed .page-content { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; }
+        .body-fixed .card { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; }
+        .body-fixed .table-container { flex-grow: 1; overflow-y: auto; min-height: 0; }
+
+        .table-container::-webkit-scrollbar { width: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #121212; }
+        .table-container::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        .sortable-header { cursor: pointer; user-select: none; }
+        .sortable-header:hover { color: #0d6efd; }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+        .header-title { flex-shrink: 0; }
+        .header-nav { flex-shrink: 0; white-space: nowrap; }
+    </style>
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <div class="container-fluid px-4 main-container">
+        <header class="page-header pb-3 mb-4 border-bottom border-secondary">
+            <div class="header-row">
+                <div class="header-title d-flex align-items-center">
+                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="qbit-doctarr" height="48" class="me-3">
+                    <h1 class="display-6 fw-bold mb-0">qbit-doctarr</h1>
+                </div>
+                <ul class="nav nav-pills header-nav">
+                    <li class="nav-item"><a href="/" class="nav-link {{ 'active' if request.path == '/' else '' }}">Dashboard</a></li>
+                    <li class="nav-item"><a href="/stalled" class="nav-link {{ 'active' if request.path == '/stalled' else '' }}">Stalled Torrents</a></li>
+                    <li class="nav-item"><a href="/missing" class="nav-link {{ 'active' if request.path == '/missing' else '' }}">Missing Media</a></li>
+                    <li class="nav-item"><a href="/history" class="nav-link {{ 'active' if request.path == '/history' else '' }}">History</a></li>
+                    <li class="nav-item"><a href="/trends" class="nav-link {{ 'active' if request.path == '/trends' else '' }}">Trends</a></li>
+                    <li class="nav-item"><a href="/maintenance" class="nav-link {{ 'active' if request.path == '/maintenance' else '' }}">Maintenance</a></li>
+                    <li class="nav-item"><a href="/settings" class="nav-link {{ 'active' if request.path == '/settings' else '' }}">Settings</a></li>
+                    <li class="nav-item"><a href="/help" class="nav-link {{ 'active' if request.path == '/help' else '' }}">Help</a></li>
+                </ul>
+            </div>
+        </header>
+        {% block content %}{% endblock %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

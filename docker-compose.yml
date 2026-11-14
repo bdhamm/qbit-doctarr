@@ -1,0 +1,35 @@
+services:
+  qbit-doctarr:
+    # Pull the pre-built image from GHCR (built by GitHub Actions).
+    # Check https://github.com/bdhamm/qbit-doctarr/pkgs/container/qbit-doctarr
+    # for available tags.
+    image: ghcr.io/bdhamm/qbit-doctarr:latest
+
+    # Developers building from source: comment out the line above and
+    # uncomment the two lines below.
+    # image: qbit-doctarr:local
+    # build: .
+
+    container_name: qbit-doctarr
+    restart: unless-stopped
+    # 60s lets in-flight DB writes finish and the entrypoint exit cleanly on `docker stop`.
+    # stop_grace_period: 60s
+    ports:
+      - "5000:5000"
+    environment:
+      - PUID=1000            # Change to match the owner of your data directories
+      - PGID=1000            # Synology users: often 100 (users group)
+      - PYTHONUNBUFFERED=1
+      - TZ=UTC               # Change to your local timezone (e.g., America/New_York)
+    volumes:
+      # SQLite database and config.json (persistent state).
+      # Relative to the compose file — created automatically on first run.
+      - ./config:/config
+      # qBittorrent's data folder — MUST point to the parent of BT_backup.
+      # Typical paths:
+      #   Linux/qBittorrent:       /home/user/.local/share/qBittorrent
+      #   Docker/linuxserver.io:   /path/to/appdata/qbittorrent
+      #   Synology (Docker GUI):   /volume1/docker/qbittorrent/data
+      - ./qbittorrent_data:/qbittorrent_data
+      # Quarantine folder for files moved out of downloads (read/write).
+      - ./downloads/quarantine:/downloads/quarantine

@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center" style="min-height: 52px;">
+        <div>
+            <h4 class="mb-0"><i class="bi bi-book text-primary"></i> Documentation & Setup</h4>
+            <div class="text-muted small mt-1">Complete guide for configuring the qbit-doctarr ecosystem.</div>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        
+        <div class="accordion" id="helpAccordion">
+            
+            <!-- 1. Overview & Credits -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingOverview">
+                    <button class="accordion-button bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOverview" aria-expanded="true" aria-controls="collapseOverview">
+                        <i class="bi bi-info-circle text-primary me-2"></i> 1. Overview & Credits
+                    </button>
+                </h2>
+                <div id="collapseOverview" class="accordion-collapse collapse show" aria-labelledby="headingOverview" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <p><strong>qbit-doctarr</strong> is a lightweight maintenance suite designed to fix the blind spots in the standard *arr and qBittorrent ecosystem. It does not replace Sonarr/Radarr, nor does it manage your active queue like a master controller. Instead, it acts as a janitor, focusing on metadata cleanup, stalled torrent remediation, malicious file detection, and polite missing media searches.</p>
+                        
+                        <div class="alert alert-dark border-secondary mb-3">
+                            <i class="bi bi-lightbulb text-warning me-2"></i> <strong>The Golden Rule:</strong> Let qBittorrent handle the active queue. Let the *Arrs handle the imports. Let <code>qbit-doctarr</code> handle the cleanup of things that fall through the cracks.
+                        </div>
+
+                        <h6 class="text-light mt-4">Credits & Inspiration</h6>
+                        <p>This project stands on the shoulders of giants in the *arr community. Specific features were heavily inspired by two fantastic open-source projects:</p>
+                        <ul>
+                            <li><strong>Missing Media Search:</strong> Inspired by <a href="https://github.com/elfhosted/houndarr" target="_blank" class="text-info text-decoration-none">Houndarr</a>. The "Polite Mode" batching, cooldown limits, and per-item search logic are a direct homage to Houndarr's elegant indexer-safe approach.</li>
+                            <li><strong>Unmonitor Downloaded Items:</strong> Inspired by <a href="https://github.com/jorenn92/Maintainerr" target="_blank" class="text-info text-decoration-none">Maintainerr</a>. The concept of sweeping your library to unmonitor items that have successfully imported comes from Maintainerr's excellent collection-management philosophy.</li>
+                        </ul>
+                        <p class="mb-0">qbit-doctarr simply aims to bring those specific capabilities (plus some cleanup tasks) into a single, lightweight Docker container. Huge thanks to the developers of those projects for the inspiration.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Permissions & Ownership -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingPermissions">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePermissions" aria-expanded="false" aria-controls="collapsePermissions">
+                        <i class="bi bi-shield-lock text-danger me-2"></i> 2. Permissions & Ownership (Critical)
+                    </button>
+                </h2>
+                <div id="collapsePermissions" class="accordion-collapse collapse" aria-labelledby="headingPermissions" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <p><strong>qBittorrent, qbit-doctarr, and every *arr instance must run with the same PUID and PGID.</strong> This is not optional — it is the single most common cause of "the task found orphans but couldn't do anything about them" failures.</p>
+
+                        <h6 class="text-light mt-4">Why this matters</h6>
+                        <p>qbit-doctarr performs these operations against directories owned by other containers:</p>
+                        <ul>
+                            <li><strong>Moves</strong> orphaned <code>.torrent</code> files out of <code>/downloads/torrent_files</code> into <code>/downloads/quarantine</code>. That requires <em>write</em> permission on the source directory to <code>unlink()</code> the original.</li>
+                            <li><strong>Reads</strong> qBittorrent's internal <code>BT_backup</code> directory to inventory <code>.torrent</code>/<code>.fastresume</code> pairs.</li>
+                            <li><strong>Pauses</strong> and <strong>deletes</strong> torrents via the qBittorrent API — no file access, but the qBittorrent WebUI credentials matter here.</li>
+                        </ul>
+
+                        <h6 class="text-light mt-4">What goes wrong if PUIDs differ</h6>
+                        <p>If qBittorrent runs as <code>1000:1000</code> and qbit-doctarr runs as <code>1000:100</code>, then qbit-doctarr sees the <code>.torrent</code> files but cannot delete them from qBittorrent's folders — the operating system returns <code>Permission denied</code>. The task completes, logs "Quarantined 0 files", and moves on. Silent failure.</p>
+                        <p>Worse: qBittorrent's own <code>.torrent</code> copy feature may stop writing to those folders if qbit-doctarr has previously changed their ownership. This is why qbit-doctarr <strong>never</strong> recursively chowns any directory owned by qBittorrent — the <code>/config</code> and <code>/downloads/quarantine</code> directories are the only ones it manages, and only because they are empty on first boot.</p>
+
+                        <h6 class="text-light mt-4">Recommended values</h6>
+                        <p>The correct PUID/PGID is <strong>whatever your host user actually is</strong>. Check on the NAS with:</p>
+                        <pre class="bg-black text-success p-3 rounded border border-secondary"><code>id
+# Example output: uid=1000(youruser) gid=1000(youruser) groups=1000(youruser),100(users)</code></pre>
+                        <p>On most Linux distributions this is <code>1000:1000</code>. Some NAS systems (Synology, Unraid) use unconventional GIDs — for example, Synology's <code>users</code> group is <code>GID 100</code>. Use whatever the target folder is actually owned by.</p>
+
+                        <div class="alert alert-dark border-danger">
+                            <i class="bi bi-exclamation-triangle text-danger me-2"></i> <strong>Check every container.</strong> The common failure mode is that qBittorrent was set up first with the correct PUID/PGID, but qbit-doctarr or an *arr was added later with a copy-pasted <code>PUID=1000 PGID=1000</code> that doesn't match. All three (qbit-doctarr, qBittorrent, and each *arr) must agree.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. qBittorrent Queue & Force Start -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingQbitQueue">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseQbitQueue" aria-expanded="false" aria-controls="collapseQbitQueue">
+                        <i class="bi bi-speedometer2 text-success me-2"></i> 3. qBittorrent: Queueing, Seeding & Force Start
+                    </button>
+                </h2>
+                <div id="collapseQbitQueue" class="accordion-collapse collapse" aria-labelledby="headingQbitQueue" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <p>Go to <strong>Options → BitTorrent</strong> in qBittorrent:</p>
+                        <ul>
+                            <li><strong>Torrent Queuing:</strong> Keep this enabled. It prevents qBittorrent from choking on 100 active downloads at once.</li>
+                            <li><strong>Do not count slow torrents in these limits:</strong> <span class="text-success">Highly Recommended.</span> If a torrent drops below the speed threshold (e.g., 2 KiB/s) for the inactivity timer (e.g., 3600s), qBittorrent will pause it and start a different torrent in the queue.</li>
+                            <li><strong>Seeding Limits:</strong> Ensure these are configured (e.g., ratio 1.0 or max seeding time). qbit-doctarr relies on the *arrs and qBittorrent to handle the standard seeding lifecycle. When qBittorrent pauses a torrent at 100%, the *arr imports it and removes it.</li>
+                        </ul>
+                        
+                        <h6 class="text-light mt-4">The "Force Start" Problem</h6>
+                        <p>In qBittorrent, clicking <strong>Force Start</strong> tells the client to ignore all queueing rules, ratio rules, and stall detection. It forces the torrent to run indefinitely.</p>
+                        <p>If you set your *Arrs to use "Force Started" as the Initial State (see the next section), you get faster grab times. However, if a force-started torrent dies (0 B/s), qBittorrent will never mark it as stalled, and the *arr will wait forever.</p>
+                        <div class="alert alert-dark border-success">
+                            <i class="bi bi-shield-check text-success me-2"></i> <strong>This is exactly what qbit-doctarr solves.</strong> Our Stalled Tracker intentionally bypasses qBittorrent's status and monitors actual data transfer. If a Force-Started torrent stalls, qbit-doctarr will catch it, delete it, and trigger a new search in the *arr.
+                        </div>
+                        
+                        <h6 class="text-light mt-4">The Force Start Lifecycle (Important)</h6>
+                        <p>If you use Force Start in your *arrs, you <strong>must</strong> tell qBittorrent to turn it off once the download finishes. If you don't, the torrent will remain force-started, ignore your seeding limits, and clog the queue.</p>
+                        <p>Go to <strong>Options → Downloads</strong> in qBittorrent and scroll to the bottom:</p>
+                        <ol class="mb-3">
+                            <li>Check <strong>Run external program</strong>.</li>
+                            <li>In the <strong>Run on torrent finished</strong> field, paste the following command:</li>
+                        </ol>
+                        <pre class="bg-black text-success p-3 rounded border border-secondary"><code>curl -s -X POST --data "hashes=%I&value=false" "http://localhost:8080/api/v2/torrents/setForceStart"</code></pre>
+                        <div class="alert alert-dark border-secondary">
+                            <i class="bi bi-info-circle text-info me-2"></i> <strong>Note on the command:</strong> This tells qBittorrent to call its own API and set the Force Start flag to <code>false</code> the moment a torrent hits 100%. If you access qBittorrent via a different port or IP, adjust <code>localhost:8080</code> accordingly.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. *Arr Configuration -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingArrConfig">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseArrConfig" aria-expanded="false" aria-controls="collapseArrConfig">
+                        <i class="bi bi-film text-info me-2"></i> 4. *Arr Configuration (Radarr/Sonarr/Whisparr)
+                    </button>
+                </h2>
+                <div id="collapseArrConfig" class="accordion-collapse collapse" aria-labelledby="headingArrConfig" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <p>Go to <strong>Settings → Download Clients</strong> in your *Arr and edit your qBittorrent entry:</p>
+                        <ul>
+                            <li><strong>Category:</strong> Ensure this is set (e.g., <code>servarr-radarr</code>). This is mandatory. <strong>The *arr will automatically create this category in qBittorrent.</strong> qbit-doctarr uses this category to map a torrent back to the correct *arr instance.</li>
+                            <li><strong>Post-Import Category:</strong> <span class="text-danger fw-bold">Do NOT use this field.</span> Leave it completely blank. If you change the category after import, qbit-doctarr will lose track of the torrent and its API mapping will break, preventing automated cleanup.</li>
+                            <li><strong>Initial State:</strong> <span class="text-success">Force Started (Optional but Recommended).</span> By forcing the start, you bypass qBittorrent's slow queueing logic and grab files immediately. As noted above, qbit-doctarr is designed to catch these if they die.</li>
+                        </ul>
+                        <div class="alert alert-dark border-secondary">
+                            <i class="bi bi-key text-warning me-2"></i> Remember to add the URL, API Key, and Category exactly as they appear here into the <strong>*Arr Instances</strong> section of qbit-doctarr's Settings page. If you use Whisparr v3 (Radarr-based) or v2 (Sonarr-based), make sure to set the "Lineage" dropdown correctly in Settings.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. The Dashboard -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingDashboard">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDashboard" aria-expanded="false" aria-controls="collapseDashboard">
+                        <i class="bi bi-speedometer2 text-primary me-2"></i> 5. The Dashboard
+                    </button>
+                </h2>
+                <div id="collapseDashboard" class="accordion-collapse collapse" aria-labelledby="headingDashboard" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <p>The Dashboard is your landing page. It provides a high-level summary of every automated task, showing you:</p>
+                        <ul>
+                            <li><strong>Last Run Status:</strong> Success, Error, or Never run.</li>
+                            <li><strong>Last Run Details:</strong> A brief snippet of what the task actually did.</li>
+                            <li><strong>Task-Specific Stats:</strong> Database health statuses, for example.</li>
+                            <li><strong>Live Countdown:</strong> Exactly how long until the next scheduled run.</li>
+                        </ul>
+                        <p>Clicking any card's title will take you directly to the relevant page or setting. You can also click <strong>Refresh Now</strong> to force an update without waiting for the 60-second auto-refresh.</p>
+                        <p>If you want to declutter your view, click <strong>Customize</strong> in the top right. This opens a modal where you can toggle specific cards on or off. Your preferences are saved automatically.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. The Stalled Torrents Page -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingStalledPage">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStalledPage" aria-expanded="false" aria-controls="collapseStalledPage">
+                        <i class="bi bi-activity text-danger me-2"></i> 6. The Stalled Torrents Page
+                    </button>
+                </h2>
+                <div id="collapseStalledPage" class="accordion-collapse collapse" aria-labelledby="headingStalledPage" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <p>This page is dedicated to the <strong>Stalled Tracker</strong>. It shows you exactly which torrents are currently being monitored and how much time is left before the script intervenes.</p>
+                        
+                        <div class="alert alert-dark border-secondary">
+                            <i class="bi bi-info-circle text-info me-2"></i> <strong>Category Filter:</strong> The Stalled Tracker will only ever evaluate torrents that have a category matching one of your enabled *arrs. Manual downloads, games, or other torrents without an *arr category are completely ignored.
+                        </div>
+
+                        <h6 class="text-light mt-3">Understanding the Statuses</h6>
+                        <ul>
+                            <li><span class="badge bg-warning text-dark">meta_stall</span> The torrent is stuck fetching the metadata (magnet link isn't connecting to peers).</li>
+                            <li><span class="badge bg-danger">dl_stall</span> The torrent is downloading, but the speed is below your threshold (or at 0 B/s).</li>
+                            <li><span class="badge bg-info">seed_stall</span> The torrent is 100% complete but uploading at 0 B/s (only shown if "Pause Completed Stalled Seeds" is enabled).</li>
+                        </ul>
+
+                        <h6 class="text-light mt-3">Features</h6>
+                        <ul>
+                            <li><strong>Search &amp; Filter:</strong> You can filter by torrent name and use the dropdown to isolate a specific stall type.</li>
+                            <li><strong>Sort:</strong> Click the column headers to sort the list.</li>
+                            <li><strong>Blocklist &amp; Re-search:</strong> Deletes the torrent from qBittorrent, adds the release to the *arr blocklist, and triggers a fresh search. (Essentially the same action as the Missing Media page).</li>
+                            <li><strong>Run Check Now:</strong> Bypasses the scheduler and immediately triggers the Stalled Tracker.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. The Missing Media Page -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingMissingPage">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMissingPage" aria-expanded="false" aria-controls="collapseMissingPage">
+                        <i class="bi bi-search text-primary me-2"></i> 7. The Missing Media Page
+                    </button>
+                </h2>
+                <div id="collapseMissingPage" class="accordion-collapse collapse" aria-labelledby="headingMissingPage" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <p>This page tracks items that your *arr is looking for but hasn't successfully downloaded yet. It acts as a polite search scheduler.</p>
+                        
+                        <h6 class="text-light mt-3">Polite vs. Brute Force</h6>
+                        <ul>
+                            <li><strong>Polite Mode (Enabled):</strong> qbit-doctarr fetches the missing list, tracks items in its database, and searches a small batch every run. It applies a 24-hour cooldown to each item so you don't spam indexers.</li>
+                            <li><strong>Polite Mode (Disabled):</strong> qbit-doctarr ignores the batch system and tells the *arr to run a full "Search All Missing" command. The *arr handles everything internally.</li>
+                        </ul>
+
+                        <h6 class="text-light mt-3">Tracking Actions</h6>
+                        <ul>
+                            <li><strong>Retry:</strong> Resets the cooldown and attempt counter for this item.</li>
+                            <li><strong>Ignore:</strong> Stops qbit-doctarr from searching for this item (it stays in your *arr's wanted list).</li>
+                            <li><strong>Blocklist &amp; Re-search:</strong> Tells your *arr to blocklist the failed release and immediately triggers a fresh search.</li>
+                        </ul>
+
+                        <div class="alert alert-dark border-secondary">
+                            <i class="bi bi-info-circle text-info me-2"></i> <strong>Note on Pruning:</strong> If an item is successfully downloaded, it vanishes from your *arr's "Missing" list. The scheduled <strong>Missing Media Prune</strong> task cleans these "zombie" rows out of qbit-doctarr automatically.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. The Maintenance Page -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingMaintPage">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMaintPage" aria-expanded="false" aria-controls="collapseMaintPage">
+                        <i class="bi bi-tools text-warning me-2"></i> 8. The Maintenance Page
+                    </button>
+                </h2>
+                <div id="collapseMaintPage" class="accordion-collapse collapse" aria-labelledby="headingMaintPage" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <p>This page houses the manual cleanup tasks. You can run any of these tasks manually at any time.</p>
+                        
+                        <h6 class="text-light mt-3">Scan vs. Action Buttons</h6>
+                        <ul>
+                            <li><strong>Scan (Dry Run):</strong> This runs the logic and reports what it <em>would</em> do in the "Scan Results" window, but it does not delete, move, or unmonitor anything. Use this to preview actions.</li>
+                            <li><strong>Action Buttons:</strong> The right-hand button on each card executes the task. The label tells you exactly what will happen (e.g., <strong>Quarantine</strong> for metadata, <strong>Delete</strong> for unmanaged torrents, <strong>Block</strong> for malicious files, <strong>Unmonitor</strong> for downloaded items, and <strong>Search</strong> for Missing Media).</li>
+                        </ul>
+
+                        <h6 class="text-light mt-3">The Tasks</h6>
+                        <ul>
+                            <li><strong>BT_Backup Repair:</strong> Scans qBittorrent's internal folder for orphaned <code>.torrent</code> and <code>.fastresume</code> files.</li>
+                            <li><strong>Unmonitor Items:</strong> Sweeps your enabled *arrs and unmonitors any items that have successfully downloaded a file. (Helpful for stopping upgrade loops).</li>
+                            <li><strong>Unmanaged Torrents:</strong> Deletes stopped/paused torrents that no *arr is currently tracking.</li>
+                            <li><strong>Malicious Scanner:</strong> Reads file lists and blocks torrents containing executables or other dangerous files.</li>
+                            <li><strong>Missing Media:</strong> Triggers the polite search batch across all enabled *arrs.</li>
+                            <li><strong>Quarantine Cleanup:</strong> Deletes files in the quarantine folder that are older than the retention limit set in Settings.</li>
+                        </ul>
+
+                        <h6 class="text-light mt-3">Database Maintenance (New)</h6>
+                        <p>The blue <strong>Database Maintenance</strong> card allows you to manually reset the internal tracking tables.</p>
+                        <ul>
+                            <li><strong>Reset Missing:</strong> Clears the <code>missing_media</code> table. Use this if you want to force a fresh scan of missing items. The next time the Missing Media task runs, it will re-discover everything from scratch.</li>
+                            <li><strong>Reset Stalled:</strong> Clears the <code>stalled_torrents</code> table. Use this to reset the timers on all currently stalled torrents, or to clean up if you manually deleted a torrent from qBittorrent.</li>
+                            <li><strong>Vacuum DB:</strong> Runs a SQLite <code>VACUUM</code> command. This compacts the database file and reclaims storage space, especially after you've deleted a lot of rows. It is safe to run at any time.</li>
+                        </ul>
+                        <div class="alert alert-dark border-danger">
+                            <i class="bi bi-exclamation-triangle text-danger me-2"></i> <strong>Warning:</strong> Resetting a table cannot be undone. It clears all historical tracking data for that specific feature. You will be asked for confirmation before the action runs.
+                        </div>
+
+                        <h6 class="text-light mt-3">The Bottom Panels</h6>
+                        <ul>
+                            <li><strong>Scan Results:</strong> A live output window showing exactly what the script found or did during the most recent run.</li>
+                            <li><strong>Quarantine Manager:</strong> Shows all files that have been moved to the Quarantine folder. You can search them, or select and permanently delete them to free up space. Files older than the "Retention" setting (configured in Settings) will be automatically deleted by the scheduled <strong>Quarantine Cleanup</strong> task.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. The Trends Page -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingTrendsPage">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTrendsPage" aria-expanded="false" aria-controls="collapseTrendsPage">
+                        <i class="bi bi-graph-up text-info me-2"></i> 9. The Trends Page
+                    </button>
+                </h2>
+                <div id="collapseTrendsPage" class="accordion-collapse collapse" aria-labelledby="headingTrendsPage" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <p>This page visualizes historical data over time. The system automatically takes an hourly snapshot of your counts and retains it for 30 days.</p>
+                        
+                        <h6 class="text-light mt-3">The Charts</h6>
+                        <ul>
+                            <li><strong>Missing Media Sync:</strong> Tracks Active, Failed, and Ignored items.</li>
+                            <li><strong>Torrent Cleanup:</strong> Tracks DL Stall, Meta Stall, and Seed Stall torrents.</li>
+                        </ul>
+
+                        <h6 class="text-light mt-3">Controls</h6>
+                        <ul>
+                            <li><strong>24h / 7d / 30d:</strong> Switch the view between the last 24 hours (hourly bars), last 7 days (hourly bars), and last 30 days (daily aggregated bars).</li>
+                            <li><strong>Snapshot Now:</strong> Forces an immediate snapshot without waiting for the top of the hour. Useful for testing.</li>
+                        </ul>
+                        <div class="alert alert-dark border-secondary">
+                            <i class="bi bi-info-circle text-info me-2"></i> <strong>Note on 30-day view:</strong> Because displaying 720 hourly bars on a screen is unreadable, the 30-day view aggregates the data and shows the last snapshot of each day.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10. Automation Timers & Watchdog -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingTimers">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTimers" aria-expanded="false" aria-controls="collapseTimers">
+                        <i class="bi bi-clock-history text-primary me-2"></i> 10. Automation Timers &amp; Watchdog
+                    </button>
+                </h2>
+                <div id="collapseTimers" class="accordion-collapse collapse" aria-labelledby="headingTimers" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <h6 class="text-light">Automation Schedules</h6>
+                        <p>Located in the Settings page, these allow you to configure how often the background scheduler runs each task.</p>
+                        <ul>
+                            <li><strong>Enable Toggle:</strong> The master switch in the header turns all scheduled background jobs on or off. If disabled, tasks will only run when you manually click them on the Stalled Torrents or Maintenance pages.</li>
+                            <li><strong>Time &amp; Unit:</strong> Each task has a number field and a unit dropdown (Hours or Minutes).</li>
+                            <li><strong>Disabling a Timer:</strong> If you set a task's timer to `0`, that specific task will be disabled from the background scheduler, but you can still run it manually.</li>
+                        </ul>
+
+                        <h6 class="text-light mt-3">Task Watchdog &amp; Timeouts</h6>
+                        <p>Python threads cannot be forcibly killed. This section provides an advisory watchdog.</p>
+                        <ul>
+                            <li>If a script hangs or takes longer than the configured timeout (in minutes), it writes a <strong>Timeout</strong> warning to the History page.</li>
+                            <li>This is purely for monitoring the health of the scripts. It does not kill the task; the task will continue running in the background until it finishes naturally.</li>
+                            <li><strong>0 = disabled</strong> (used for tasks like Missing Media Sync that routinely take 30+ minutes).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 11. Notifications & Digest -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingNotifications">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNotifications" aria-expanded="false" aria-controls="collapseNotifications">
+                        <i class="bi bi-envelope text-info me-2"></i> 11. Notifications &amp; Digest
+                    </button>
+                </h2>
+                <div id="collapseNotifications" class="accordion-collapse collapse" aria-labelledby="headingNotifications" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <p>qbit-doctarr can send you emails for important events and regular summaries.</p>
+                        
+                        <h6 class="text-light mt-3">Email (SMTP)</h6>
+                        <ul>
+                            <li>Configure your SMTP server details in Settings. Use the "Test Email" button to verify it works.</li>
+                            <li>Warnings are sent in a single cycle (e.g., every 15 minutes) to avoid spamming you. Once a warning is sent, it won't be sent again unless it resolves and then returns.</li>
+                            <li><strong>Muted Sources:</strong> You can silence specific warnings (like App Update Available) by unchecking them in the Settings page.</li>
+                        </ul>
+
+                        <h6 class="text-light mt-3">Periodic Digest</h6>
+                        <ul>
+                            <li>Instead of individual warnings, you can receive a summary digest (daily, weekly, or monthly).</li>
+                            <li>You can choose which sections to include (Task Activity, Health Changes, Current Snapshot).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 12. Miscellaneous & Thresholds -->
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="headingSettings">
+                    <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSettings" aria-expanded="false" aria-controls="collapseSettings">
+                        <i class="bi bi-sliders text-light me-2"></i> 12. Miscellaneous, Security &amp; Thresholds
+                    </button>
+                </h2>
+                <div id="collapseSettings" class="accordion-collapse collapse" aria-labelledby="headingSettings" data-bs-parent="#helpAccordion">
+                    <div class="accordion-body text-muted">
+                        <h6 class="text-light">General &amp; Security</h6>
+                        <ul>
+                            <li><strong>Global Dry Run:</strong> Simulates all automated actions. No files are deleted, moved, or modified in your *arr apps. Use this to test the system safely.</li>
+                            <li><strong>Basic Auth:</strong> Protects the UI with a simple username and password. <span class="text-danger">Warning:</span> Do not use this over HTTP unless you are behind a reverse proxy providing HTTPS, or your password will be transmitted in plain text.</li>
+                            <li><strong>Storage &amp; Logging:</strong> Control history retention, log levels, and whether to save logs to a file.</li>
+                        </ul>
+
+                        <h6 class="text-light mt-3">Missing Media Search</h6>
+                        <ul>
+                            <li><strong>Respect Indexer Constraints:</strong> Turns "Polite Mode" on/off.</li>
+                            <li><strong>Batch Size:</strong> How many searches to trigger per run (per *arr or total).</li>
+                            <li><strong>Cooldown &amp; Retries:</strong> How long to wait before searching an item again, and how many attempts before marking it as failed.</li>
+                        </ul>
+
+                        <h6 class="text-light mt-3">Tracker Thresholds</h6>
+                        <ul>
+                            <li><strong>Metadata Timeout:</strong> How long a torrent can sit on "Downloading Metadata" before the Stalled Tracker fails it.</li>
+                            <li><strong>Slow/Dead Timeout:</strong> How long a Force-Started torrent can download at 0 B/s before it is failed.</li>
+                            <li><strong>Unmanaged Age:</strong> How old a stopped torrent must be before it is deleted if no *arr is tracking it.</li>
+                            <li><strong>Slow Speed:</strong> The speed threshold that defines a "dead" or "stalled" download.</li>
+                            <li><strong>Max Percentage:</strong> The Stalled Tracker will IGNORE any torrent that has downloaded more than this percentage.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

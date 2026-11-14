@@ -1,0 +1,74 @@
+# --- VCS / CI ---
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# --- Docker build artifacts ---
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# --- Python bytecode / caches ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- Testing / coverage (future Task 10) ---
+tests/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# --- Runtime data (bind-mounted at runtime, never baked in) ---
+data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.log
+config.json
+
+# --- Secrets (defense in depth) ---
+.env
+.env.*
+secrets/
+*.pem
+*.key
+
+# --- Internal development notes ---
+qbit-doctarr-state-*.html
+
+# --- Docs (not needed at runtime; users read them on GitHub) ---
+README.md
+CONTRIBUTING.md
+CHANGELOG.md
+docs/
+
+# --- Editors / OS cruft ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- Node (shouldn't exist, but defense in depth) ---
+node_modules/
+package-lock.json
+yarn.lock
+
+# NOTE: LICENSE is deliberately NOT excluded — MIT requires it be
+# included in all copies and substantial portions of the software,
+# which includes the published Docker image.
