@@ -1,4 +1,9 @@
-# qbit-doctarr
+<table>
+  <tr>
+    <td><img src="app/static/logo.svg" alt="qbit-doctarr" width="80"></td>
+    <td><h1>qbit-doctarr</h1></td>
+  </tr>
+</table>
 
 **A lightweight maintenance suite for the *arr / qBittorrent ecosystem.**
 
